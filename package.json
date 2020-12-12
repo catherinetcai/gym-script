@@ -2,7 +2,14 @@
   "dependencies": {
     "@google-cloud/secret-manager": "^3.2.3",
     "bunyan": "^1.8.14",
+    "chai": "^4.2.0",
     "dotenv": "^8.2.0",
     "puppeteer": "^5.5.0"
+  },
+  "devDependencies": {
+    "mocha": "^8.2.1"
+  },
+  "scripts": {
+    "test": "mocha --reporter spec"
   }
 }

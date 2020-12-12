@@ -5,24 +5,24 @@ const puppeteer = require('puppeteer');
 const bunyan = require('bunyan');
 const log = bunyan.createLogger({name: 'gym'});
 
-exports.entrypoint = () => {
+const entrypoint = async () => {
   const {SecretManagerServiceClient} = require('@google-cloud/secret-manager');
 
   const client = new SecretManagerServiceClient();
 
   let loginSecret = null;
   if (process.env.ENV == "production") {
-    const [secret] = await client.getSecret({
+    const [secret] = await client.accessSecretVersion({
       name: 'projects/gym-scheduler-1596625138648/secrets/gym-scheduler-secret',
     });
-    loginSecret = secret;
+    loginSecret = secret.payload.data.toString('utf8');
   } else {
     loginSecret = process.env.LOGINS;
   }
 
   let logins = parseLogins(loginSecret);
 
-  logins.forEach(function(item, _) {
+  logins.forEach(async function(item, _) {
     await book(item[0], item[1]);
   });
 }
@@ -83,10 +83,10 @@ const login = async (page, email, password) => {
 
 // Returns logins as [[username, password]]
 const parseLogins = (loginString) => {
-  let logins = loginString(",");
+  let logins = loginString.split(",");
 
-  logins.map(x => x.split(":"));
-  return logins;
+  let mapped = logins.map(x => x.split(":"));
+  return mapped;
 }
 
 const isWeekend = (date) => {
@@ -99,3 +99,7 @@ const isWeekend = (date) => {
 
   return false;
 }
+
+exports.entrypoint = entrypoint;
+exports.parseLogins = parseLogins;
+exports.isWeekend = isWeekend;
