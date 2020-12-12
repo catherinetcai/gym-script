@@ -3,7 +3,7 @@
 require('dotenv').config();
 const puppeteer = require('puppeteer');
 const bunyan = require('bunyan');
-const {LoggingBunyan} = requirere('@google-cloud/logging-bunyan');
+const {LoggingBunyan} = require('@google-cloud/logging-bunyan');
 const loggingBunyan = new LoggingBunyan();
 const log = bunyan.createLogger({
   name: 'gym',
