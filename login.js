@@ -13,7 +13,7 @@ const entrypoint = async () => {
   let loginSecret = null;
   if (process.env.ENV == "production") {
     const [secret] = await client.accessSecretVersion({
-      name: 'projects/gym-scheduler-1596625138648/secrets/gym-scheduler-secret',
+      name: "projects/621787529314/secrets/gym-scheduler-secret/versions/1",
     });
     loginSecret = secret.payload.data.toString('utf8');
   } else {
