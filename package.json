@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@google-cloud/logging-bunyan": "^3.0.1",
     "@google-cloud/secret-manager": "^3.2.3",
     "bunyan": "^1.8.14",
     "chai": "^4.2.0",
