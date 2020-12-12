@@ -3,7 +3,17 @@
 require('dotenv').config();
 const puppeteer = require('puppeteer');
 const bunyan = require('bunyan');
-const log = bunyan.createLogger({name: 'gym'});
+const {LoggingBunyan} = requirere('@google-cloud/logging-bunyan');
+const loggingBunyan = new LoggingBunyan();
+const log = bunyan.createLogger({
+  name: 'gym',
+  streams: [
+    // Log to the console at 'info' and above
+    {stream: process.stdout, level: 'info'},
+    // And log to Stackdriver Logging, logging at 'info' and above
+    loggingBunyan.stream('info'),
+  ],
+});
 
 const entrypoint = async () => {
   const {SecretManagerServiceClient} = require('@google-cloud/secret-manager');
