@@ -13,7 +13,7 @@ exports.entrypoint = () => {
   let loginSecret = null;
   if (process.env.ENV == "production") {
     const [secret] = await client.getSecret({
-      name: 'gym-scheduler-secret',
+      name: 'projects/gym-scheduler-1596625138648/secrets/gym-scheduler-secret',
     });
     loginSecret = secret;
   } else {
