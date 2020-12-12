@@ -1,14 +1,31 @@
+'use strict';
+
 require('dotenv').config();
 const puppeteer = require('puppeteer');
 const bunyan = require('bunyan');
 const log = bunyan.createLogger({name: 'gym'});
-const moment = require('moment');
 
-const logins = parseLogins(process.env.LOGINS);
+exports.entrypoint = () => {
+  const {SecretManagerServiceClient} = require('@google-cloud/secret-manager');
 
-logins.forEach(function(item, _) {
-  await book(item[0], item[1]);
-});
+  const client = new SecretManagerServiceClient();
+
+  let loginSecret = null;
+  if (process.env.ENV == "production") {
+    const [secret] = await client.getSecret({
+      name: 'gym-scheduler-secret',
+    });
+    loginSecret = secret;
+  } else {
+    loginSecret = process.env.LOGINS;
+  }
+
+  let logins = parseLogins(loginSecret);
+
+  logins.forEach(function(item, _) {
+    await book(item[0], item[1]);
+  });
+}
 
 const book = async (username, password) => {
   const browser = await puppeteer.launch();
