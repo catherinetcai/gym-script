@@ -42,7 +42,7 @@ const book = async (username, password) => {
   const context = await browser.createIncognitoBrowserContext();
   const page = await context.newPage();
 
-  log("Logging in for: ", username);
+  log.info("Logging in for: ", username);
 
   // Login
   await login(page, username, password);
@@ -50,13 +50,13 @@ const book = async (username, password) => {
   // Click to book workout
   await page.click('a[href="/myflye/book-workout"]');
 
-  log('Page URL after clicking book workout: ', page.url());
+  log.info('Page URL after clicking book workout: ', page.url());
 
   let currentDate = new Date();
   // Travel forward in time so we are incremented an extra day since we're booking for tomorrow
   currentDate.setHours(currentDate.getHours() + 24);
 
-  log("Tomorrow's date", currentDate);
+  log.info("Tomorrow's date", currentDate);
   let year = currentDate.getFullYear();
   // Have to add one because month is 0 indexed lmao
   let month = currentDate.getMonth()+1;
@@ -67,18 +67,18 @@ const book = async (username, password) => {
 
   // Click to dropdown
   if (isWeekend(currentDate)) {
-    log("Booking for the weekend");
+    log.info("Booking for the weekend");
     await page.click('*[data-course-time="17:00 - 18:15"]');
   } else {
-    log("Booking for the weekday");
+    log.info("Booking for the weekday");
     await page.click('*[data-course-time="13:00 - 14:15"]');
   }
 
-  log("Clicked date course time");
+  log.info("Clicked date course time");
   await new Promise(r => setTimeout(r, 500));
   await page.click('#book_class');
 
-  log("Clicked book class");
+  log.info("Clicked book class");
   browser.close();
 };
 
@@ -113,3 +113,5 @@ const isWeekend = (date) => {
 exports.entrypoint = entrypoint;
 exports.parseLogins = parseLogins;
 exports.isWeekend = isWeekend;
+
+entrypoint();
