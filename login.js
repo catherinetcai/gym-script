@@ -1,7 +1,10 @@
 'use strict';
 
 require('dotenv').config();
-const puppeteer = require('puppeteer');
+// Issue running headless Chrome in google cloud functions, following the instructions here:
+// https://github.com/puppeteer/puppeteer/issues/3120 to fix
+const chromium = require('chrome-aws-lambda');
+const puppeteer = require('puppeteer-core');
 const bunyan = require('bunyan');
 const {LoggingBunyan} = require('@google-cloud/logging-bunyan');
 const loggingBunyan = new LoggingBunyan();
@@ -38,48 +41,58 @@ const entrypoint = async () => {
 }
 
 const book = async (username, password) => {
-  const browser = await puppeteer.launch();
-  const context = await browser.createIncognitoBrowserContext();
-  const page = await context.newPage();
+  try {
+    const browser = await puppeteer.launch({
+      headless: chromium.headless,
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath,
+    });
 
-  log.info("Logging in for: ", username);
+    const context = await browser.createIncognitoBrowserContext();
+    const page = await context.newPage();
 
-  // Login
-  await login(page, username, password);
+    log.info("Logging in for: ", username);
 
-  // Click to book workout
-  await page.click('a[href="/myflye/book-workout"]');
+    // Login
+    await login(page, username, password);
 
-  log.info('Page URL after clicking book workout: ', page.url());
+    // Click to book workout
+    await page.click('a[href="/myflye/book-workout"]');
 
-  let currentDate = new Date();
-  // Travel forward in time so we are incremented an extra day since we're booking for tomorrow
-  currentDate.setHours(currentDate.getHours() + 24);
+    log.info('Page URL after clicking book workout: ', page.url());
 
-  log.info("Tomorrow's date", currentDate);
-  let year = currentDate.getFullYear();
-  // Have to add one because month is 0 indexed lmao
-  let month = currentDate.getMonth()+1;
-  let day = currentDate.getDate();
+    let currentDate = new Date();
+    // Travel forward in time so we are incremented an extra day since we're booking for tomorrow
+    currentDate.setHours(currentDate.getHours() + 24);
 
-  let workoutURL = `https://myflye.flyefit.ie/myflye/book-workout/167/3/${year}-${month}-${day}`;
-  await page.goto(workoutURL);
+    log.info("Tomorrow's date", currentDate);
+    let year = currentDate.getFullYear();
+    // Have to add one because month is 0 indexed lmao
+    let month = currentDate.getMonth()+1;
+    let day = currentDate.getDate();
 
-  // Click to dropdown
-  if (isWeekend(currentDate)) {
-    log.info("Booking for the weekend");
-    await page.click('*[data-course-time="17:00 - 18:15"]');
-  } else {
-    log.info("Booking for the weekday");
-    await page.click('*[data-course-time="13:00 - 14:15"]');
+    let workoutURL = `https://myflye.flyefit.ie/myflye/book-workout/167/3/${year}-${month}-${day}`;
+    await page.goto(workoutURL);
+
+    // Click to dropdown
+    if (isWeekend(currentDate)) {
+      log.info("Booking for the weekend");
+      await page.click('*[data-course-time="17:00 - 18:15"]');
+    } else {
+      log.info("Booking for the weekday");
+      await page.click('*[data-course-time="13:00 - 14:15"]');
+    }
+
+    log.info("Clicked date course time");
+    await new Promise(r => setTimeout(r, 500));
+    await page.click('#book_class');
+
+    log.info("Clicked book class");
+    browser.close();
+  } catch(e) {
+    log.info("Error closing browser", e);
   }
-
-  log.info("Clicked date course time");
-  await new Promise(r => setTimeout(r, 500));
-  await page.click('#book_class');
-
-  log.info("Clicked book class");
-  browser.close();
 };
 
 // Given a page object and credentials, navigate into the login page
