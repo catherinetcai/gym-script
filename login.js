@@ -8,14 +8,14 @@ const puppeteer = require('puppeteer-core');
 const bunyan = require('bunyan');
 const {LoggingBunyan} = require('@google-cloud/logging-bunyan');
 const loggingBunyan = new LoggingBunyan();
+let streams = [{stream: process.stdout, level: 'info'}];
+if (process.env.ENV == "production") {
+  streams.push(loggingBunyan.stream('info'));
+}
+
 const log = bunyan.createLogger({
   name: 'gym',
-  streams: [
-    // Log to the console at 'info' and above
-    {stream: process.stdout, level: 'info'},
-    // And log to Stackdriver Logging, logging at 'info' and above
-    loggingBunyan.stream('info'),
-  ],
+  streams: streams,
 });
 
 const entrypoint = async () => {
@@ -34,28 +34,52 @@ const entrypoint = async () => {
   }
 
   let logins = parseLogins(loginSecret);
-
-  logins.forEach(async function(item, _) {
-    await book(item[0], item[1]);
-  });
-}
-
-const book = async (username, password) => {
+  let browser = null;
   try {
-    const browser = await puppeteer.launch({
+    browser = await chromium.puppeteer.launch({
       headless: chromium.headless,
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath,
     });
+  } catch(e) {
+    log.info("Error opening browser", e);
+    exit(1);
+  }
 
-    const context = await browser.createIncognitoBrowserContext();
-    const page = await context.newPage();
+  const context = await browser.createIncognitoBrowserContext();
+  const promises = []
+  logins.forEach(async function(item, _) {
+    promises.push(context.newPage().then(async page => {
+      await book(page, item[0], item[1]);
+    }))
+  });
+  await Promise.all(promises);
+  browser.close();
+}
+
+const book = async (page, username, password) => {
+  try {
+    // const context = await browser.createIncognitoBrowserContext();
+    // const page = await context.newPage();
 
     log.info("Logging in for: ", username);
 
     // Login
     await login(page, username, password);
+
+    // Check to see if already booked for today
+    // const formatter = new Intl.DateTimeFormat('en', { month: 'short' });
+    // const dateGetter = new Date();
+    // const shortMonth = formatter.format(dateGetter);
+    // const dayName = dateGetter.toLocaleDateString('en-US', { weekday: 'long' });
+    // log.info(`Short month: ${shortMonth}, dayname: ${dayName}`);
+    // const found = await page.evaluate((dayName) => window.find(`${dayName}`));
+
+    // if (found) {
+    //   log.info("Already booked for, doing nothing - username: ", username);
+    //   return;
+    // }
 
     // Click to book workout
     await page.click('a[href="/myflye/book-workout"]');
@@ -89,10 +113,12 @@ const book = async (username, password) => {
     await page.click('#book_class');
 
     log.info("Clicked book class");
-    browser.close();
+    return;
   } catch(e) {
     log.info("Error closing browser", e);
+    return;
   }
+  return;
 };
 
 // Given a page object and credentials, navigate into the login page
