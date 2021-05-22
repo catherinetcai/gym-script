@@ -5,6 +5,10 @@ require('dotenv').config();
 // https://github.com/puppeteer/puppeteer/issues/3120 to fix
 const chromium = require('chrome-aws-lambda');
 const puppeteer = require('puppeteer-core');
+const yaml = require('js-yaml');
+const fs = require('fs');
+
+// Logging stuff
 const bunyan = require('bunyan');
 const {LoggingBunyan} = require('@google-cloud/logging-bunyan');
 const loggingBunyan = new LoggingBunyan();
@@ -17,6 +21,15 @@ const log = bunyan.createLogger({
   name: 'gym',
   streams: streams,
 });
+
+// TODO: Implement overrides
+let overrides = null;
+
+try {
+  overrides = yaml.safeLoad(fs.readFileSync('./overrides.yml', 'utf8'));
+} catch (e) {
+  log.warn("Couldn't load an overrides file, proceeding anyway");
+}
 
 const entrypoint = async () => {
   const {SecretManagerServiceClient} = require('@google-cloud/secret-manager');
@@ -58,7 +71,7 @@ const entrypoint = async () => {
   browser.close();
 }
 
-const book = async (page, username, password) => {
+const book = async (page, username, password, overrides) => {
   try {
     // const context = await browser.createIncognitoBrowserContext();
     // const page = await context.newPage();
@@ -67,19 +80,6 @@ const book = async (page, username, password) => {
 
     // Login
     await login(page, username, password);
-
-    // Check to see if already booked for today
-    // const formatter = new Intl.DateTimeFormat('en', { month: 'short' });
-    // const dateGetter = new Date();
-    // const shortMonth = formatter.format(dateGetter);
-    // const dayName = dateGetter.toLocaleDateString('en-US', { weekday: 'long' });
-    // log.info(`Short month: ${shortMonth}, dayname: ${dayName}`);
-    // const found = await page.evaluate((dayName) => window.find(`${dayName}`));
-
-    // if (found) {
-    //   log.info("Already booked for, doing nothing - username: ", username);
-    //   return;
-    // }
 
     // Click to book workout
     await page.click('a[href="/myflye/book-workout"]');
@@ -118,7 +118,6 @@ const book = async (page, username, password) => {
     log.info("Error closing browser", e);
     return;
   }
-  return;
 };
 
 // Given a page object and credentials, navigate into the login page
@@ -142,11 +141,7 @@ const isWeekend = (date) => {
   const day = date.getDay();
 
   // Saturday = 6, Sunday = 0, both modulo to 0
-  if (day % 6 == 0) {
-    return true;
-  }
-
-  return false;
+  return (day % 6 == 0);
 }
 
 exports.entrypoint = entrypoint;
