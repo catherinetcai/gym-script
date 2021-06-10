@@ -72,11 +72,13 @@ const entrypoint = async () => {
 }
 
 const book = async (page, username, password, overrides) => {
+  let logger = log.child({username: username});
+
   try {
     // const context = await browser.createIncognitoBrowserContext();
     // const page = await context.newPage();
 
-    log.info("Logging in for: ", username);
+    logger.info("Logging in for: ", username);
 
     // Login
     await login(page, username, password);
@@ -86,14 +88,15 @@ const book = async (page, username, password, overrides) => {
 
     log.info('Page URL after clicking book workout: ', page.url());
 
+    // TODO: This variable is poorly named
     let currentDate = new Date();
     // Travel forward in time so we are incremented an extra day since we're booking for tomorrow
     currentDate.setHours(currentDate.getHours() + 24);
 
     log.info("Tomorrow's date", currentDate);
     let year = currentDate.getFullYear();
-    // Have to add one because month is 0 indexed lmao
-    let month = currentDate.getMonth()+1;
+    // Have to add one because month is 0 indexed, because wtf JS
+    let month = currentDate.getMonth() + 1;
     let day = currentDate.getDate();
 
     let workoutURL = `https://myflye.flyefit.ie/myflye/book-workout/167/3/${year}-${month}-${day}`;
@@ -101,21 +104,21 @@ const book = async (page, username, password, overrides) => {
 
     // Click to dropdown
     if (isWeekend(currentDate)) {
-      log.info("Booking for the weekend");
-      await page.click('*[data-course-time="17:00 - 18:15"]');
+      logger.info("Booking for the weekend");
+      await page.click('*[data-course-time="17:00 - 18:30"]');
     } else {
-      log.info("Booking for the weekday");
-      await page.click('*[data-course-time="13:00 - 14:15"]');
+      logger.info("Booking for the weekday");
+      await page.click('*[data-course-time="13:00 - 14:30"]');
     }
 
-    log.info("Clicked date course time");
+    logger.info("Clicked date course time");
     await new Promise(r => setTimeout(r, 500));
     await page.click('#book_class');
 
-    log.info("Clicked book class");
+    logger.info("Clicked book class");
     return;
   } catch(e) {
-    log.info("Error closing browser", e);
+    logger.error("Error while booking with browser: ", e);
     return;
   }
 };
@@ -125,7 +128,7 @@ const login = async (page, email, password) => {
   await page.goto('https://myflye.flyefit.ie/login');
   await page.type('#email_address', email);
   await page.type('#password', password);
-  await page.click('.btn[name="log_in"]');
+  await page.$eval('form', form => form.submit());
   await page.waitForNavigation();
 }
 
