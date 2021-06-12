@@ -101,8 +101,13 @@ const book = async (page, username, password) => {
 
     // Click to dropdown
     if (isWeekend(currentDate)) {
+<<<<<<< Updated upstream
       log.info("Booking for the weekend");
       await page.click('*[data-course-time="17:00 - 18:15"]');
+=======
+      logger.info("Booking for the weekend");
+      await page.click('*[data-course-time="16:30 - 18:00"]');
+>>>>>>> Stashed changes
     } else {
       log.info("Booking for the weekday");
       await page.click('*[data-course-time="13:00 - 14:15"]');
