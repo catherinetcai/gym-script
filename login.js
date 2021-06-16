@@ -68,7 +68,7 @@ const entrypoint = async () => {
     }))
   });
   await Promise.all(promises);
-  browser.close();
+  await browser.close();
 }
 
 const book = async (page, username, password, overrides) => {
@@ -82,11 +82,6 @@ const book = async (page, username, password, overrides) => {
 
     // Login
     await login(page, username, password);
-
-    // Click to book workout
-    await page.click('a[href="/myflye/book-workout"]');
-
-    log.info('Page URL after clicking book workout: ', page.url());
 
     // TODO: This variable is poorly named
     let currentDate = new Date();
@@ -116,7 +111,6 @@ const book = async (page, username, password, overrides) => {
     await page.click('#book_class');
 
     logger.info("Clicked book class");
-    return;
   } catch(e) {
     logger.error("Error while booking with browser: ", e);
     return;
